@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h3>History & Estimator</h3>
+  <div>
+    <a class="btn btn-outline-primary me-2" href="{{ url_for('history_view') }}">View All</a>
+  </div>
+</div>
+  
+
+<div class="row mt-3">
+  <div class="col-md-6">
+    <div class="card p-3 shadow-sm">
+      <h5>Basic add</h5>
+      <form id="basicHistoryForm">
+        <div class="mb-2"><input class="form-control" name="cropName" placeholder="Crop name" required></div>
+        <div class="mb-2"><input class="form-control" name="harvestDate" placeholder="Harvest date"></div>
+        <div class="mb-2 row">
+          <div class="col"><input class="form-control" name="area" type="number" step="0.1" placeholder="Area"></div>
+          <div class="col"><input class="form-control" name="yieldPerArea" type="number" step="0.1" placeholder="Yield/area"></div>
+        </div>
+        <div class="mb-2 row">
+          <div class="col"><input class="form-control" name="marketPrice" type="number" step="0.01" placeholder="Price"></div>
+          <div class="col"><input class="form-control" name="cost" type="number" step="0.01" placeholder="Cost"></div>
+        </div>
+        <button class="btn btn-primary">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 shadow-sm">
+      <h5>Advanced estimator (uses weather)</h5>
+      <form id="advForm">
+        <div class="mb-2"><input class="form-control" name="cropName" placeholder="Crop name" required></div>
+        <div class="mb-2"><input class="form-control" name="harvestDate" placeholder="Harvest date"></div>
+        <div class="mb-2 row">
+          <div class="col"><input class="form-control" name="area" type="number" step="0.1" placeholder="Area"></div>
+          <div class="col"><input class="form-control" name="baseYieldPerArea" type="number" step="0.1" placeholder="Base yield/area"></div>
+        </div>
+        <div class="mb-2 row">
+          <div class="col"><input class="form-control" name="marketPrice" type="number" step="0.01" placeholder="Price"></div>
+          <div class="col"><input class="form-control" name="cost" type="number" step="0.01" placeholder="Cost"></div>
+        </div>
+        <button class="btn btn-success">Estimate & Save</button>
+      </form>
+      <div id="advResult" class="mt-3" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4">
+  <h5>Combined history</h5>
+  <ul class="list-group">
+    {% for r in rows %}
+      <li class="list-group-item">
+        <strong>{{ r.cropName }}</strong> | {{ r.harvestDate }} — TotYield: {{ "%.2f"|format(r.totalYield) }} | Profit: ₹{{ "%.2f"|format(r.profit) }}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<script>
+document.getElementById('basicHistoryForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.area = parseFloat(data.area||0); data.yieldPerArea = parseFloat(data.yieldPerArea||0); data.marketPrice = parseFloat(data.marketPrice||0); data.cost = parseFloat(data.cost||0);
+  const res = await fetch('/history/add_basic', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+  const j = await res.json();
+  if (j.ok){ location.reload(); } else alert('Error');
+});
+
+document.getElementById('advForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.area = parseFloat(data.area||0); data.baseYieldPerArea = parseFloat(data.baseYieldPerArea||0); data.marketPrice = parseFloat(data.marketPrice||0); data.cost = parseFloat(data.cost||0);
+  const res = await fetch('/history/estimate_and_add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+  const j = await res.json();
+  if (j.ok){
+    const out = j.estimate;
+    const el = document.getElementById('advResult');
+    el.style.display='block';
+    el.innerHTML = `<div class="alert alert-info">Adjusted Yld/Area: ${out.adjusted_yield_per_area.toFixed(2)}<br>TotalYield: ${out.totalYield.toFixed(2)} | Profit: ₹${out.profit.toFixed(2)}</div>`;
+  } else alert('Error');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>{{ title }} — Table View</h3>
+  <div class="d-flex">
+    <form class="d-flex me-2" method="get">
+      <input class="form-control form-control-sm me-2" name="q" placeholder="Search..." value="{{ q }}">
+      <select class="form-select form-select-sm me-2" name="sort">
+        {% for c in columns %}
+          <option value="{{ c }}" {% if c==sort %}selected{% endif %}>Sort: {{ c }}</option>
+        {% endfor %}
+      </select>
+      <select class="form-select form-select-sm me-2" name="order">
+        <option value="asc" {% if order=='asc' %}selected{% endif %}>Asc</option>
+        <option value="desc" {% if order=='desc' %}selected{% endif %}>Desc</option>
+      </select>
+      <button class="btn btn-sm btn-primary" type="submit">Apply</button>
+    </form>
+    <a class="btn btn-outline-secondary btn-sm ms-2" href="{{ request.path }}">Reset</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm table-striped">
+    <thead>
+      <tr>
+        {% for c in columns %}
+          <th>{{ c }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          {% for c in columns %}
+            <td>{{ r[c] if r[c] is not none else '' }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      {% if rows|length == 0 %}
+        <tr><td colspan="{{ columns|length }}">No records found.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

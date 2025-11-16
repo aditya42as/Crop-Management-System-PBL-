@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-12 d-flex justify-content-between align-items-center">
+    <h2>Dashboard</h2>
+    <div>
+      <a class="btn btn-outline-dark me-2" href="{{ url_for('crops_page') }}">Crops</a>
+      <a class="btn btn-outline-dark me-2" href="{{ url_for('weather_page') }}">Weather</a>
+      <a class="btn btn-outline-dark me-2" href="{{ url_for('history_page') }}">History</a>
+      <a class="btn btn-outline-dark" href="{{ url_for('todo_page') }}">To-Do</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-3">
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-subtitle text-muted">Crops</h6>
+        <h3 class="card-title">{{ crops }}</h3>
+        <a class="btn btn-link p-0" href="{{ url_for('crops_view') }}">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-subtitle text-muted">Weather records</h6>
+        <h3 class="card-title">{{ weather }}</h3>
+        <a class="btn btn-link p-0" href="{{ url_for('weather_view') }}">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-subtitle text-muted">History rows</h6>
+        <h3 class="card-title">{{ history }}</h3>
+        <a class="btn btn-link p-0" href="{{ url_for('history_view') }}">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-subtitle text-muted">Tasks</h6>
+        <h3 class="card-title">{{ tasks }}</h3>
+        <a class="btn btn-link p-0" href="{{ url_for('todo_view') }}">View all →</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

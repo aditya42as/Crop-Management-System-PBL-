@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h3>To-Do</h3>
+  <div>
+    <a class="btn btn-outline-primary me-2" href="{{ url_for('todo_view') }}">View All</a>
+    <button class="btn btn-success" id="completeTop">Complete Top Task</button>
+  </div>
+</div>
+
+
+<div class="card p-3 shadow-sm mt-3">
+  <form id="addTaskForm" class="row g-2">
+    <div class="col-md-2"><input class="form-control" name="priority" placeholder="Priority" type="number" required></div>
+    <div class="col-md-8"><input class="form-control" name="desc" placeholder="Task description" required></div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">Add</button></div>
+  </form>
+</div>
+
+<ul class="list-group mt-3">
+  {% for t in tasks|sort(attribute='priority', reverse=true) %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    [{{ t.priority }}] {{ t.desc }}
+  </li>
+  {% endfor %}
+</ul>
+
+<script>
+document.getElementById('addTaskForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.priority = parseInt(data.priority||0);
+  const res = await fetch('/todo/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+  const j = await res.json();
+  if (j.ok) location.reload(); else alert('Error');
+});
+
+document.getElementById('completeTop').addEventListener('click', async function(){
+  const res = await fetch('/todo/complete', {method:'POST'});
+  const j = await res.json();
+  if (j.ok) location.reload();
+});
+</script>
+{% endblock %}

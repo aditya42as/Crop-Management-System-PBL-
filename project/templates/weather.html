@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Weather Records</h3>
+
+    <div class="d-flex align-items-center">
+
+        <a class="btn btn-outline-primary me-2" href="{{ url_for('weather_view') }}">
+            View All
+        </a>
+
+        <input id="apiCity" class="form-control form-control-sm me-2"
+               style="width:130px;" placeholder="City (e.g. Delhi)">
+
+        <button class="btn btn-warning btn-sm me-2" id="apiPredictBtn">
+            API Forecast
+        </button>
+
+        <input id="offlineDays" class="form-control form-control-sm me-2"
+               style="width:80px;" value="1" type="number" min="1" max="7" title="Days (1-7)">
+
+        <button class="btn btn-info btn-sm me-2" id="offlinePredictBtn">
+            Offline Predict
+        </button>
+
+        <button class="btn btn-success" data-bs-toggle="modal"
+                data-bs-target="#addWeatherModal">
+            Add Record
+        </button>
+    </div>
+</div>
+
+
+<div class="list-group">
+    {% for r in recs %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ r.date }}</strong> —
+                Temp: {{ r.temperature }}°C,
+                Humidity: {{ r.humidity }}%,
+                Rain: {{ r.rainfall }}mm
+            </div>
+            <button class="btn btn-sm btn-danger"
+                    onclick="deleteWeather('{{ r.date }}')">
+                Delete
+            </button>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="addWeatherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="addWeatherForm" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Weather Record</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-2">
+                    <input class="form-control" name="date" placeholder="DD-MM-YYYY" required>
+                </div>
+                <div class="mb-2">
+                    <input class="form-control" name="temperature" type="number" step="0.1" placeholder="Temperature (°C)">
+                </div>
+                <div class="mb-2">
+                    <input class="form-control" name="humidity" type="number" step="0.1" placeholder="Humidity (%)">
+                </div>
+                <div class="mb-2">
+                    <input class="form-control" name="rainfall" type="number" step="0.1" placeholder="Rainfall (mm)">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-success" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function deleteWeather(date) {
+    if (!confirm("Delete record for " + date + "?")) return;
+
+    const res = await fetch('/weather/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({date})
+    });
+
+    const j = await res.json();
+    if (j.ok) location.reload();
+    else alert('Error deleting');
+}
+
+document.getElementById('addWeatherForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.temperature = parseFloat(data.temperature || 0);
+    data.humidity = parseFloat(data.humidity || 0);
+    data.rainfall = parseFloat(data.rainfall || 0);
+
+    const res = await fetch('/weather/add', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    const j = await res.json();
+    if (j.ok) location.reload();
+    else alert("Add failed");
+});
+
+document.getElementById('apiPredictBtn').addEventListener('click', async () => {
+    const city = document.getElementById('apiCity').value || "Delhi";
+    const res = await fetch(`/weather/api_predict?city=${city}&days=3`);
+    const j = await res.json();
+
+    if (!j.ok) {
+        alert("API Error: " + j.error);
+        return;
+    }
+
+    let html = `
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5>API Forecast for ${j.city}</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Avg Temp (°C)</th>
+                        <th>Humidity (%)</th>
+                        <th>Rain Chance (%)</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    j.forecast.forEach(f => {
+        html += `
+            <tr>
+                <td>${f.date}</td>
+                <td>${f.avg_temp}</td>
+                <td>${f.humidity}</td>
+                <td>${f.rain_chance}</td>
+                <td>${f.condition}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    </div>
+    `;
+
+    let container = document.getElementById('apiResultContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'apiResultContainer';
+        document.querySelector('.container').appendChild(container);
+    }
+    container.innerHTML = html;
+});
+</script>
+
+<script>
+// OFFLINE PREDICTION (calls server-side offline predictor)
+document.getElementById('offlinePredictBtn').addEventListener('click', async () => {
+  const days = parseInt(document.getElementById('offlineDays').value || '1', 10);
+  const daysClamped = Math.max(1, Math.min(7, days));
+  const res = await fetch(`/weather/predict?days=${daysClamped}`);
+  const j = await res.json();
+
+  if (!j.ok) {
+    alert('Offline prediction failed');
+    return;
+  }
+
+  const preds = j.predictions;
+  let html = `
+    <div class="card mt-3">
+      <div class="card-body">
+        <h5>Offline Prediction (next ${daysClamped} day(s))</h5>
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Day</th><th>Temp (°C)</th><th>Humidity (%)</th><th>Rainfall (mm)</th><th>Conf (std)</th></tr>
+          </thead>
+          <tbody>
+  `;
+
+  preds.forEach(p => {
+    html += `<tr>
+      <td>+${p.day_offset}</td>
+      <td>${p.temperature}</td>
+      <td>${p.humidity}</td>
+      <td>${p.rainfall}</td>
+      <td>${p.conf_std ?? ''}</td>
+    </tr>`;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  let container = document.getElementById('offlineResultContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'offlineResultContainer';
+    document.querySelector('.container').appendChild(container);
+  }
+  container.innerHTML = html;
+});
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h4 class="card-title mb-3">Login</h4>
+        <form method="post" action="{{ url_for('login') }}">
+          <div class="mb-2">
+            <label class="form-label">Username</label>
+            <input class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success">Login</button>
+            <button class="btn btn-outline-secondary" type="button" id="showSignup">Sign up</button>
+          </div>
+        </form>
+        <hr>
+        <div id="signupBox" style="display:none;">
+          <h5>Create account</h5>
+          <form method="post" action="{{ url_for('signup') }}">
+            <div class="mb-2">
+              <input class="form-control" name="username" placeholder="new username" required>
+            </div>
+            <div class="mb-2">
+              <input class="form-control" name="password" placeholder="password" type="password" required>
+            </div>
+            <button class="btn btn-primary">Create account</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('showSignup').addEventListener('click', function(){
+  const b = document.getElementById('signupBox');
+  b.style.display = (b.style.display === 'none') ? 'block' : 'none';
+});
+</script>
+{% endblock %}

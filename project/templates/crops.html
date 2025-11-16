@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Crops</h3>
+  <div>
+    <a class="btn btn-outline-primary me-2" href="{{ url_for('crops_view') }}">View All</a>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropModal">Add Crop</button>
+  </div>
+</div>
+
+<div class="row">
+  {% for c in crops %}
+  <div class="col-md-4">
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <h5>{{ c.name }}</h5>
+        <p class="mb-1"><strong>Type:</strong> {{ c.type }}</p>
+        <p class="mb-1"><strong>Season:</strong> {{ c.season }} • <strong>Harvest:</strong> {{ c.harvest }}</p>
+        <p class="mb-1"><strong>Water:</strong> {{ c.waterReq }} • <strong>Fert:</strong> {{ c.fertilizer }}</p>
+        <p class="mb-1"><strong>Price:</strong> ₹{{ "%.2f"|format(c.price) }} • <strong>Area:</strong> {{ "%.2f"|format(c.area) }}</p>
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary me-2" onclick="showEditCrop('{{ c.name|escape }}')">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteCrop('{{ c.name|escape }}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Add Crop Modal -->
+<div class="modal fade" id="addCropModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="addCropForm" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Add Crop</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2"><input class="form-control" name="name" placeholder="Name" required></div>
+        <div class="mb-2"><input class="form-control" name="type" placeholder="Type"></div>
+        <div class="mb-2"><input class="form-control" name="season" placeholder="Season"></div>
+        <div class="mb-2"><input class="form-control" name="harvest" placeholder="Harvest"></div>
+        <div class="mb-2"><input class="form-control" name="waterReq" placeholder="Water Requirement"></div>
+        <div class="mb-2"><input class="form-control" name="fertilizer" placeholder="Fertilizer"></div>
+        <div class="row">
+          <div class="col"><input class="form-control" name="price" placeholder="Price" type="number" step="0.01"></div>
+          <div class="col"><input class="form-control" name="area" placeholder="Area" type="number" step="0.01"></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button class="btn btn-success" type="submit">Add</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Crop Modal (filled by JS) -->
+<div class="modal fade" id="editCropModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="editCropForm" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Edit Crop</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="editCropBody">
+        <!-- filled via JS -->
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button class="btn btn-primary" type="submit">Save</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+async function deleteCrop(name){
+  if (!confirm('Delete ' + name + '?')) return;
+  const res = await fetch('/crops/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
+  const j = await res.json();
+  if (j.ok){ location.reload(); } else { alert('Error'); }
+}
+
+document.getElementById('addCropForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.price = parseFloat(data.price || 0); data.area = parseFloat(data.area || 0);
+  const res = await fetch('/crops/add', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  const j = await res.json();
+  if (j.ok){ location.reload(); } else if (j.error=='exists') { alert('Crop exists'); } else alert('Error');
+});
+
+function showEditCrop(name){
+  // find existing card data in DOM (simple approach)
+  const card = [...document.querySelectorAll('.card')].find(c => c.textContent.includes(name));
+  if (!card) return;
+  // extract fields (we stored in card markup above)
+  const title = name;
+  const type = card.querySelector('p').textContent.split(':')[1].trim();
+  const body = `
+    <input type="hidden" name="name" value="${name}">
+    <div class="mb-2"><input class="form-control" name="type" value="${type}"></div>
+    <div class="mb-2"><input class="form-control" name="season" placeholder="Season"></div>
+    <div class="mb-2"><input class="form-control" name="harvest" placeholder="Harvest"></div>
+    <div class="mb-2"><input class="form-control" name="waterReq" placeholder="Water Requirement"></div>
+    <div class="mb-2"><input class="form-control" name="fertilizer" placeholder="Fertilizer"></div>
+    <div class="row"><div class="col"><input class="form-control" name="price" placeholder="Price" type="number" step="0.01"></div><div class="col"><input class="form-control" name="area" placeholder="Area" type="number" step="0.01"></div></div>
+  `;
+  document.getElementById('editCropBody').innerHTML = body;
+  var ed = new bootstrap.Modal(document.getElementById('editCropModal'));
+  ed.show();
+}
+
+document.getElementById('editCropForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.price = parseFloat(data.price || 0); data.area = parseFloat(data.area || 0);
+  const res = await fetch('/crops/edit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+  const j = await res.json();
+  if (j.ok){ location.reload(); } else alert('Error: ' + (j.error||''));
+});
+</script>
+{% endblock %}
